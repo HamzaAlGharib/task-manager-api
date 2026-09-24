@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from src.models.task import Task
+from src.models.task_update import TaskUpdate
 
 app = FastAPI(title="Task Manager API")
 
@@ -30,3 +31,16 @@ def get_task(task_id: int):
             return task
         
     raise HTTPException(status_code=404, detail="Task not found")
+
+@app.put("/tasks/{task_id}")
+def update_task(task_id: int, updated_task: TaskUpdate):
+    for task in tasks:
+        if task.id == task_id:
+            task.title = updated_task.title
+            task.description = updated_task.description
+            task.completed = updated_task.completed
+            return task
+
+    raise HTTPException(status_code=404, detail="Task not found")
+
+        
