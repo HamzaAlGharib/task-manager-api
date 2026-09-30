@@ -8,12 +8,10 @@ app = FastAPI(title="Task Manager API")
 
 db = SessionLocal()
 
-tasks = []
-next_task_id = 1
-
 @app.get("/")
 def root():
-    return {"message":"Task Manager API is running"}
+    return {"message": "Task Manager API is running"}
+
 
 @app.post("/tasks")
 def create_task(task: Task):
@@ -26,8 +24,8 @@ def create_task(task: Task):
         {
             "title": task.title,
             "description": task.description,
-            "completed": task.completed
-        }
+            "completed": task.completed,
+        },
     )
 
     row = result.fetchone()
@@ -35,6 +33,7 @@ def create_task(task: Task):
     db.commit()
 
     return dict(row._mapping)
+
 
 @app.get("/tasks")
 def get_tasks():
@@ -46,32 +45,61 @@ def get_tasks():
 
     return tasks
 
+
 @app.get("/tasks/{task_id}")
 def get_task(task_id: int):
-    for task in tasks:
-        if task.id == task_id:
-            return task
-        
+    result = db.execute(
+        text("select * from tasks where id=:task_id;"), {"task_id": task_id}
+    )
+    row = result.fetchone()
+    if row:
+        task = dict(row._mapping)
+        return task
+
     raise HTTPException(status_code=404, detail="Task not found")
+
 
 @app.put("/tasks/{task_id}")
 def update_task(task_id: int, updated_task: TaskUpdate):
-    for task in tasks:
-        if task.id == task_id:
-            task.title = updated_task.title
-            task.description = updated_task.description
-            task.completed = updated_task.completed
-            return task
+
+    result = db.execute(
+        text("""UPDATE tasks SET title=:title, 
+    description=:description,
+    completed=:completed
+    WHERE id=:task_id
+    RETURNING *
+    
+    """),
+        {
+            "title": updated_task.title,
+            "description": updated_task.description,
+            "completed": updated_task.completed,
+            "task_id": task_id,
+        },
+    )
+    row = result.fetchone()
+    if row:
+        db.commit()
+        return dict(row._mapping)
 
     raise HTTPException(status_code=404, detail="Task not found")
+
 
 @app.delete("/tasks/{task_id}")
 def delete_task(task_id: int):
-    for task in tasks:
-        if task.id == task_id:
-            tasks.remove(task)
-            return
+    result = db.execute(
+        text("""
+            DELETE FROM tasks
+            WHERE id = :task_id
+            RETURNING *;
+        """),
+        {"task_id": task_id},
+    )
+
+    row = result.fetchone()
+
+    if row:
+        db.commit()
+        return dict(row._mapping)
 
     raise HTTPException(status_code=404, detail="Task not found")
-
-        
