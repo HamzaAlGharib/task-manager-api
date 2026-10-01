@@ -18,14 +18,15 @@ def root():
 def create_task(task: Task, db: Session = Depends(get_db)):
     result = db.execute(
         text("""
-            INSERT INTO tasks (title, description, completed)
-            VALUES (:title, :description, :completed)
+            INSERT INTO tasks (title, description, completed, priority)
+            VALUES (:title, :description, :completed, :priority)
             RETURNING *;
         """),
         {
             "title": task.title,
             "description": task.description,
             "completed": task.completed,
+            "priority":task.priority
         },
     )
 
@@ -38,7 +39,7 @@ def create_task(task: Task, db: Session = Depends(get_db)):
 
 @app.get("/tasks")
 def get_tasks(db: Session = Depends(get_db)):
-    result = db.execute(text("select * from tasks;"))
+    result = db.execute(text("select * from tasks order by id;"))
     tasks = []
 
     for row in result:
@@ -66,7 +67,8 @@ def update_task(task_id: int, updated_task: TaskUpdate, db: Session = Depends(ge
     result = db.execute(
         text("""UPDATE tasks SET title=:title, 
     description=:description,
-    completed=:completed
+    completed=:completed,
+    priority=:priority
     WHERE id=:task_id
     RETURNING *
     
@@ -75,7 +77,8 @@ def update_task(task_id: int, updated_task: TaskUpdate, db: Session = Depends(ge
             "title": updated_task.title,
             "description": updated_task.description,
             "completed": updated_task.completed,
-            "task_id": task_id,
+            "priority":updated_task.priority,
+            "task_id": task_id
         },
     )
     row = result.fetchone()

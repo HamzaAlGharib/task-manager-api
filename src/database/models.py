@@ -13,3 +13,4 @@ class Task(Base):
     title: Mapped[str] = mapped_column(String(255))
     description: Mapped[str] = mapped_column(Text)
     completed: Mapped[bool] = mapped_column(Boolean, default=False)
+    priority: Mapped[int | None] = mapped_column(nullable=True)
