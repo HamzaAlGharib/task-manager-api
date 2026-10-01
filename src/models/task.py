@@ -5,3 +5,4 @@ class Task(BaseModel):
     title: str
     description: str
     completed: bool = False
+    priority: int | None = None

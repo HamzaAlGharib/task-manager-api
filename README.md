@@ -18,7 +18,7 @@ On Windows PowerShell:
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-pip install fastapi uvicorn
+pip install -r requirements.txt
 ```
 
 Start the API:
@@ -46,6 +46,3 @@ Interactive API documentation:
 | PUT    | `/tasks/{task_id}` | Update a task                 |
 | DELETE | `/tasks/{task_id}` | Delete a task                 |
 
-## Notes
-
-Tasks are currently stored in memory, so all tasks are lost when the application is restarted.

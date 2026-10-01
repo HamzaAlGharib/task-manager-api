@@ -1,12 +1,13 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from src.models.task import Task
 from src.models.task_update import TaskUpdate
-from src.database.database import SessionLocal
+from src.database.database import get_db
 from sqlalchemy import text
+from sqlalchemy.orm import Session
+
 
 app = FastAPI(title="Task Manager API")
 
-db = SessionLocal()
 
 @app.get("/")
 def root():
@@ -14,17 +15,18 @@ def root():
 
 
 @app.post("/tasks")
-def create_task(task: Task):
+def create_task(task: Task, db: Session = Depends(get_db)):
     result = db.execute(
         text("""
-            INSERT INTO tasks (title, description, completed)
-            VALUES (:title, :description, :completed)
+            INSERT INTO tasks (title, description, completed, priority)
+            VALUES (:title, :description, :completed, :priority)
             RETURNING *;
         """),
         {
             "title": task.title,
             "description": task.description,
             "completed": task.completed,
+            "priority":task.priority
         },
     )
 
@@ -36,8 +38,8 @@ def create_task(task: Task):
 
 
 @app.get("/tasks")
-def get_tasks():
-    result = db.execute(text("select * from tasks;"))
+def get_tasks(db: Session = Depends(get_db)):
+    result = db.execute(text("select * from tasks order by id;"))
     tasks = []
 
     for row in result:
@@ -47,7 +49,7 @@ def get_tasks():
 
 
 @app.get("/tasks/{task_id}")
-def get_task(task_id: int):
+def get_task(task_id: int, db: Session = Depends(get_db)):
     result = db.execute(
         text("select * from tasks where id=:task_id;"), {"task_id": task_id}
     )
@@ -60,12 +62,13 @@ def get_task(task_id: int):
 
 
 @app.put("/tasks/{task_id}")
-def update_task(task_id: int, updated_task: TaskUpdate):
+def update_task(task_id: int, updated_task: TaskUpdate, db: Session = Depends(get_db)):
 
     result = db.execute(
         text("""UPDATE tasks SET title=:title, 
     description=:description,
-    completed=:completed
+    completed=:completed,
+    priority=:priority
     WHERE id=:task_id
     RETURNING *
     
@@ -74,7 +77,8 @@ def update_task(task_id: int, updated_task: TaskUpdate):
             "title": updated_task.title,
             "description": updated_task.description,
             "completed": updated_task.completed,
-            "task_id": task_id,
+            "priority":updated_task.priority,
+            "task_id": task_id
         },
     )
     row = result.fetchone()
@@ -86,7 +90,7 @@ def update_task(task_id: int, updated_task: TaskUpdate):
 
 
 @app.delete("/tasks/{task_id}")
-def delete_task(task_id: int):
+def delete_task(task_id: int, db: Session = Depends(get_db)):
     result = db.execute(
         text("""
             DELETE FROM tasks

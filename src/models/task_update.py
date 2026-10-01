@@ -4,4 +4,5 @@ class TaskUpdate(BaseModel):
     title: str
     description: str
     completed: bool
+    priority: int | None = None
     
