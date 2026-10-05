@@ -4,7 +4,7 @@ from src.models.task_update import TaskUpdate
 from src.database.database import get_db
 from sqlalchemy import text
 from sqlalchemy.orm import Session
-from src.auth import hash_password
+from src.auth import hash_password, verify_password, create_access_token
 from src.models.user import UserRegister
 from sqlalchemy.exc import IntegrityError
 from fastapi.exceptions import RequestValidationError
@@ -148,3 +148,27 @@ def register(user: UserRegister, db: Session = Depends(get_db)):
     except IntegrityError:
         db.rollback()
         raise HTTPException(status_code=400, detail="Email already registered")
+
+
+@app.post("/auth/login")
+def login(user: UserRegister, db: Session = Depends(get_db)):
+    result = db.execute(
+        text("""
+            SELECT id, email, password_hash
+            FROM users
+            WHERE email = :email;
+        """),
+        {"email": user.email},
+    )
+
+    existing_user = result.fetchone()
+
+    if not existing_user:
+        raise HTTPException(status_code=401, detail="Invalid email or password") #401 code:Unauthorized
+
+    if not verify_password(user.password, existing_user.password_hash):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    access_token = create_access_token(existing_user.id)
+
+    return {"access_token": access_token, "token_type": "bearer"}
