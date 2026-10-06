@@ -1,5 +1,5 @@
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy import String, Text, Boolean
+from sqlalchemy import String, Text, Boolean, ForeignKey
 
 
 class Base(DeclarativeBase):
@@ -14,6 +14,7 @@ class Task(Base):
     description: Mapped[str] = mapped_column(Text)
     completed: Mapped[bool] = mapped_column(Boolean, default=False)
     priority: Mapped[int | None] = mapped_column(nullable=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
 
 class User(Base):
     __tablename__ = "users"

@@ -4,7 +4,12 @@ from src.models.task_update import TaskUpdate
 from src.database.database import get_db
 from sqlalchemy import text
 from sqlalchemy.orm import Session
-from src.auth import hash_password, verify_password, create_access_token
+from src.auth import (
+    hash_password,
+    verify_password,
+    create_access_token,
+    get_current_user,
+)
 from src.models.user import UserRegister
 from sqlalchemy.exc import IntegrityError
 from fastapi.exceptions import RequestValidationError
@@ -34,18 +39,23 @@ def root():
 
 
 @app.post("/tasks")
-def create_task(task: Task, db: Session = Depends(get_db)):
+def create_task(
+    task: Task,
+    db: Session = Depends(get_db),
+    current_user_id: int = Depends(get_current_user),
+):
     result = db.execute(
         text("""
-            INSERT INTO tasks (title, description, completed, priority)
-            VALUES (:title, :description, :completed, :priority)
-            RETURNING *;
+            INSERT INTO tasks (title, description, completed, priority, user_id)
+            VALUES (:title, :description, :completed, :priority, :user_id)
+            RETURNING id, title, description, completed, priority;
         """),
         {
             "title": task.title,
             "description": task.description,
             "completed": task.completed,
             "priority": task.priority,
+            "user_id": current_user_id,
         },
     )
 
@@ -57,8 +67,15 @@ def create_task(task: Task, db: Session = Depends(get_db)):
 
 
 @app.get("/tasks")
-def get_tasks(db: Session = Depends(get_db)):
-    result = db.execute(text("select * from tasks order by id;"))
+def get_tasks(
+    db: Session = Depends(get_db), current_user_id: int = Depends(get_current_user)
+):
+    result = db.execute(
+        text(
+            "select id, title, description, completed, priority from tasks where user_id=:user_id order by id;"
+        ),
+        {"user_id": current_user_id},
+    )
     tasks = []
 
     for row in result:
@@ -68,9 +85,16 @@ def get_tasks(db: Session = Depends(get_db)):
 
 
 @app.get("/tasks/{task_id}")
-def get_task(task_id: int, db: Session = Depends(get_db)):
+def get_task(
+    task_id: int,
+    db: Session = Depends(get_db),
+    current_user_id: int = Depends(get_current_user),
+):
     result = db.execute(
-        text("select * from tasks where id=:task_id;"), {"task_id": task_id}
+        text(
+            "select id, title, description, completed, priority from tasks where id=:task_id AND user_id= :user_id;"
+        ),
+        {"task_id": task_id, "user_id": current_user_id},
     )
     row = result.fetchone()
     if row:
@@ -81,15 +105,20 @@ def get_task(task_id: int, db: Session = Depends(get_db)):
 
 
 @app.put("/tasks/{task_id}")
-def update_task(task_id: int, updated_task: TaskUpdate, db: Session = Depends(get_db)):
+def update_task(
+    task_id: int,
+    updated_task: TaskUpdate,
+    db: Session = Depends(get_db),
+    current_user_id: int = Depends(get_current_user),
+):
 
     result = db.execute(
         text("""UPDATE tasks SET title=:title, 
     description=:description,
     completed=:completed,
     priority=:priority
-    WHERE id=:task_id
-    RETURNING *
+    WHERE id=:task_id AND user_id = :user_id
+    RETURNING id, title, description, completed, priority;
     
     """),
         {
@@ -98,6 +127,7 @@ def update_task(task_id: int, updated_task: TaskUpdate, db: Session = Depends(ge
             "completed": updated_task.completed,
             "priority": updated_task.priority,
             "task_id": task_id,
+            "user_id": current_user_id,
         },
     )
     row = result.fetchone()
@@ -109,14 +139,18 @@ def update_task(task_id: int, updated_task: TaskUpdate, db: Session = Depends(ge
 
 
 @app.delete("/tasks/{task_id}")
-def delete_task(task_id: int, db: Session = Depends(get_db)):
+def delete_task(
+    task_id: int,
+    db: Session = Depends(get_db),
+    current_user_id: int = Depends(get_current_user),
+):
     result = db.execute(
         text("""
             DELETE FROM tasks
-            WHERE id = :task_id
-            RETURNING *;
+            WHERE id = :task_id AND user_id = :user_id
+            RETURNING id, title, description, completed, priority;
         """),
-        {"task_id": task_id},
+        {"task_id": task_id, "user_id": current_user_id},
     )
 
     row = result.fetchone()
@@ -164,7 +198,9 @@ def login(user: UserRegister, db: Session = Depends(get_db)):
     existing_user = result.fetchone()
 
     if not existing_user:
-        raise HTTPException(status_code=401, detail="Invalid email or password") #401 code:Unauthorized
+        raise HTTPException(
+            status_code=401, detail="Invalid email or password"
+        )  # 401 code:Unauthorized
 
     if not verify_password(user.password, existing_user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid email or password")
