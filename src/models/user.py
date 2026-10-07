@@ -26,3 +26,11 @@ class UserRegister(BaseModel):
             raise ValueError("Password must contain at least one " + ", ".join(errors))
 
         return password
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
