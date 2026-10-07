@@ -1,3 +1,7 @@
+import os
+import jwt
+
+from datetime import datetime, timezone, timedelta
 from fastapi import FastAPI, HTTPException, Depends, Request
 from src.models.task import Task
 from src.models.task_update import TaskUpdate
@@ -8,6 +12,7 @@ from src.auth import (
     hash_password,
     verify_password,
     create_access_token,
+    create_refresh_token,
     get_current_user,
 )
 from src.models.user import UserRegister
@@ -206,5 +211,111 @@ def login(user: UserRegister, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
     access_token = create_access_token(existing_user.id)
+    refresh_token, jti = create_refresh_token(existing_user.id)
 
-    return {"access_token": access_token, "token_type": "bearer"}
+    db.execute(
+        text("""
+        INSERT INTO refresh_tokens (
+            jti,
+            user_id,
+            expires_at
+        )
+        VALUES (
+            :jti,
+            :user_id,
+            :expires_at
+        );
+    """),
+        {
+            "jti": jti,
+            "user_id": existing_user.id,
+            "expires_at": datetime.now(timezone.utc) + timedelta(days=7),
+        }
+    )
+    db.commit()
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+    }
+
+
+@app.post("/auth/refresh")
+def refresh_token(refresh_token: str, db: Session = Depends(get_db)):
+    secret_key = os.getenv("JWT_SECRET_KEY")
+
+    try:
+        payload = jwt.decode(refresh_token, secret_key, algorithms=["HS256"])
+
+        user_id = payload.get("sub")
+        token_type = payload.get("type")
+        jti = payload.get("jti")
+
+        if user_id is None or token_type != "refresh" or jti is None:
+            raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+        result = db.execute(
+            text("""
+                SELECT id, user_id, revoked, expires_at
+                FROM refresh_tokens
+                WHERE jti = :jti;
+            """),
+            {"jti": jti},
+        )
+
+        stored_token = result.fetchone()
+
+        if not stored_token:
+            raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+        if stored_token.revoked:
+            raise HTTPException(
+                status_code=401, detail="Refresh token has already been used"
+            )
+
+        if stored_token.expires_at <= datetime.now(timezone.utc):
+            raise HTTPException(status_code=401, detail="Refresh token has expired")
+
+        db.execute(
+            text("""
+                UPDATE refresh_tokens
+                SET revoked = TRUE
+                WHERE jti = :jti;
+            """),
+            {"jti": jti},
+        )
+
+        new_access_token = create_access_token(int(user_id))
+
+        new_refresh_token, new_jti = create_refresh_token(int(user_id))
+
+        db.execute(
+            text("""
+                INSERT INTO refresh_tokens (
+                    jti,
+                    user_id,
+                    expires_at
+                )
+                VALUES (
+                    :jti,
+                    :user_id,
+                    :expires_at
+                );
+            """),
+            {
+                "jti": new_jti,
+                "user_id": int(user_id),
+                "expires_at": datetime.now(timezone.utc) + timedelta(days=7),
+            },
+        )
+
+        db.commit()
+
+        return {
+            "access_token": new_access_token,
+            "refresh_token": new_refresh_token,
+            "token_type": "bearer",
+        }
+
+    except (jwt.InvalidTokenError, ValueError):
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
