@@ -5,6 +5,7 @@ from pwdlib import PasswordHash
 from dotenv import load_dotenv
 from fastapi import HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from datetime import datetime, timedelta, timezone
 
 load_dotenv()
 
@@ -23,7 +24,10 @@ def verify_password(password: str, hashed_password: str) -> bool:
 def create_access_token(user_id: int) -> str:
     secret_key = os.getenv("JWT_SECRET_KEY")
 
-    payload = {"sub": str(user_id)}
+    expiration = datetime.now(timezone.utc) + timedelta(minutes=30) #ask for the time (what if the user decides to stay on the website for more thsn 30 minutes)
+
+
+    payload = {"sub": str(user_id), "exp":expiration }
 
     return jwt.encode(payload, secret_key, algorithm="HS256")
 
