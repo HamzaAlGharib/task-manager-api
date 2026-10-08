@@ -12,3 +12,6 @@ class TaskCreate(BaseModel):
     description: str
     completed: bool = False
     priority: int | None = None
+
+class MessageResponse(BaseModel):
+    message: str

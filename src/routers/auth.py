@@ -47,7 +47,7 @@ def register(user: UserRegister, db: Session = Depends(get_db)):
         return dict(user._mapping)
     except IntegrityError:
         db.rollback()
-        raise HTTPException(status_code=400, detail="Email already registered")
+        raise HTTPException(status_code=409, detail="Email already registered")
 
 
 @router.post("/login")

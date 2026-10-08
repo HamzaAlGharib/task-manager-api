@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from src.auth import get_current_user
 from src.database.database import get_db
-from src.models.task import Task, TaskCreate
+from src.models.task import Task, TaskCreate, MessageResponse
 from src.models.task_update import TaskUpdate
 
 router = APIRouter(prefix="/tasks", tags=["Tasks"])
@@ -110,7 +110,7 @@ def update_task(
     raise HTTPException(status_code=404, detail="Task not found")
 
 
-@router.delete("/{task_id}", response_model=dict)
+@router.delete("/{task_id}", response_model=MessageResponse)
 def delete_task(
     task_id: int,
     db: Session = Depends(get_db),
