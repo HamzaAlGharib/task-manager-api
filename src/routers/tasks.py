@@ -4,15 +4,15 @@ from sqlalchemy.orm import Session
 
 from src.auth import get_current_user
 from src.database.database import get_db
-from src.models.task import Task
+from src.models.task import Task, TaskCreate
 from src.models.task_update import TaskUpdate
 
 router = APIRouter(prefix="/tasks", tags=["Tasks"])
 
 
-@router.post("")
+@router.post("", response_model=Task)
 def create_task(
-    task: Task,
+    task: TaskCreate,
     db: Session = Depends(get_db),
     current_user_id: int = Depends(get_current_user),
 ):
@@ -38,7 +38,7 @@ def create_task(
     return dict(row._mapping)
 
 
-@router.get("")
+@router.get("", response_model=list[Task])
 def get_tasks(
     db: Session = Depends(get_db), current_user_id: int = Depends(get_current_user)
 ):
@@ -56,7 +56,7 @@ def get_tasks(
     return tasks
 
 
-@router.get("/{task_id}")
+@router.get("/{task_id}", response_model=Task)
 def get_task(
     task_id: int,
     db: Session = Depends(get_db),
@@ -76,7 +76,7 @@ def get_task(
     raise HTTPException(status_code=404, detail="Task not found")
 
 
-@router.put("/{task_id}")
+@router.put("/{task_id}", response_model=Task)
 def update_task(
     task_id: int,
     updated_task: TaskUpdate,
@@ -110,7 +110,7 @@ def update_task(
     raise HTTPException(status_code=404, detail="Task not found")
 
 
-@router.delete("/{task_id}")
+@router.delete("/{task_id}", response_model=dict)
 def delete_task(
     task_id: int,
     db: Session = Depends(get_db),
@@ -129,6 +129,6 @@ def delete_task(
 
     if row:
         db.commit()
-        return dict(row._mapping)
+        return {"message":"Task deleted successfully"}
 
     raise HTTPException(status_code=404, detail="Task not found")
