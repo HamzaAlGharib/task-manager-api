@@ -1,5 +1,5 @@
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy import String, Text, Boolean, ForeignKey, DateTime
+from sqlalchemy import String, Text, Boolean, ForeignKey, DateTime, text
 from datetime import datetime
 
 
@@ -35,4 +35,4 @@ class RefreshToken(Base):
     expires_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )
-    revoked: Mapped[bool] = mapped_column(Boolean, default=False)
+    revoked: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
