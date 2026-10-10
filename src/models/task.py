@@ -1,8 +1,17 @@
 from pydantic import BaseModel
 
 class Task(BaseModel):
-    id: int = 0
+    id: int 
+    title: str
+    description: str
+    completed: bool 
+    priority: int | None = None
+
+class TaskCreate(BaseModel):
     title: str
     description: str
     completed: bool = False
     priority: int | None = None
+
+class MessageResponse(BaseModel):
+    message: str
