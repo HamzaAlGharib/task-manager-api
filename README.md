@@ -40,7 +40,7 @@ The project demonstrates backend development practices including JWT authenticat
 
 * Automated API tests using pytest.
 * GitHub Actions workflow for continuous integration.
-* Automated test execution on pushes to `master` and pull requests targeting `master`.
+* Automated test execution on pushes to master and pull requests targeting master.
 
 ### Deployment and Containerization
 
@@ -84,45 +84,37 @@ For containerized development, install Docker Desktop instead of setting up a lo
 
 ### 1. Clone the Repository
 
-```powershell
 git clone https://github.com/HamzaAlGharib/task-manager-api.git
 cd task-manager-api
-```
 
 ### 2. Create and Activate a Virtual Environment
 
-```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-```
 
 ### 3. Install Dependencies
 
-```powershell
 python -m pip install -r requirements.txt
-```
 
 ### 4. Configure Environment Variables
 
-Create a `.env` file in the project root.
+Create a .env file in the project root.
 
 Configure the following variables:
 
-```dotenv
 DATABASE_URL=postgresql+psycopg://USER:PASSWORD@HOST/DATABASE
 JWT_SECRET_KEY=REPLACE_WITH_A_STRONG_RANDOM_SECRET
 TEST_DATABASE_URL=YOUR_TEST_DATABASE_URL
-```
 
 Replace the example values with your own configuration.
 
-* `DATABASE_URL` identifies the PostgreSQL database used by the application.
-* `JWT_SECRET_KEY` is used to sign authentication tokens.
-* `TEST_DATABASE_URL` is reserved for the test database configuration.
+* DATABASE_URL identifies the PostgreSQL database used by the application.
+* JWT_SECRET_KEY is used to sign authentication tokens.
+* TEST_DATABASE_URL is reserved for the test database configuration.
 
 **Security:**
 
-* Never commit `.env` or real credentials to GitHub.
+* Never commit .env or real credentials to GitHub.
 * Use a separate test database rather than running destructive tests against production.
 * Configure production environment variables through Render.
 * Use a strong, randomly generated JWT secret.
@@ -131,17 +123,13 @@ Replace the example values with your own configuration.
 
 With your local database configured and accessible, run:
 
-```powershell
 alembic upgrade head
-```
 
 This applies the database migrations and creates or updates the required tables.
 
 ### 6. Start the API
 
-```powershell
 uvicorn src.main:app --reload
-```
 
 The local API will be available at:
 
@@ -156,44 +144,36 @@ Ensure Docker Desktop is running and your environment variables are configured b
 
 ### Build and Start the Services
 
-```powershell
 docker compose up -d --build
-```
 
 ### Apply Database Migrations
 
-```powershell
 docker compose run --rm api alembic upgrade head
-```
 
 ### Check Running Services
 
-```powershell
 docker compose ps
-```
+
 
 ### Stop the Services
 
-```powershell
 docker compose down
-```
+
 
 This stops and removes the Compose containers and network. It does not normally delete data stored in a named Docker volume.
 
-**Warning:** Avoid using `docker compose down -v` unless you intentionally want to remove the associated named volumes and their stored database data.
+**Warning:** Avoid using docker compose down -v unless you intentionally want to remove the associated named volumes and their stored database data.
 
 
 ## Running Tests
 
 Run the automated tests from the project root with your virtual environment activated:
 
-```powershell
 pytest
-```
 
 Tests should use a dedicated test database configured for the project's test setup.
 
-The GitHub Actions workflow runs the automated test suite to help catch regressions before changes are merged into `master`.
+The GitHub Actions workflow runs the automated test suite to help catch regressions before changes are merged into master.
 
 ## API Endpoints
 
@@ -203,25 +183,25 @@ The following table summarizes the main API operations. Authentication requireme
 
 | Method | Endpoint | Description            |
 | ------ | -------- | ---------------------- |
-| GET    | `/`      | Check API availability |
+| GET    | /      | Check API availability |
 
 ### Authentication
 
-| Method | Endpoint         | Description                           |
-| ------ | ---------------- | ------------------------------------- |
-| POST   | `/auth/register` | Register a user                       |
-| POST   | `/auth/login`    | Authenticate a user and obtain tokens |
-| POST   | `/auth/refresh`  | Refresh authentication tokens         |
+| Method | Endpoint       |  Description                         |
+| ------ | ---------------| ----------------------------------- |
+| POST   | /auth/register | Register a user                       |
+| POST   | /auth/login    | Authenticate a user and obtain tokens |
+| POST   | /auth/refresh  | Refresh authentication tokens         |
 
 ### Tasks
 
-| Method | Endpoint           | Description                                         |
-| ------ | ------------------ | --------------------------------------------------- |
-| POST   | `/tasks`           | Create a task                                       |
-| GET    | `/tasks`           | Retrieve tasks accessible to the authenticated user |
-| GET    | `/tasks/{task_id}` | Retrieve a task by ID                               |
-| PUT    | `/tasks/{task_id}` | Update a task                                       |
-| DELETE | `/tasks/{task_id}` | Delete a task                                       |
+| Method | Endpoint         | Description                                         |
+| ------ | ---------------- | --------------------------------------------------- |
+| POST   | /tasks           | Create a task                                       |
+| GET    | /tasks           | Retrieve tasks accessible to the authenticated user |
+| GET    | /tasks/{task_id} | Retrieve a task by ID                               |
+| PUT    | /tasks/{task_id} | Update a task                                       |
+| DELETE | /tasks/{task_id} | Delete a task                                       |
 
 
 ## Authentication and Authorization
@@ -243,33 +223,24 @@ Alembic manages database schema changes.
 
 To apply pending migrations:
 
-```powershell
 alembic upgrade head
-```
 
 To inspect migration history:
 
-```powershell
 alembic history
-```
 
 To display the current database revision:
 
-```powershell
 alembic current
-```
 
 Run migrations against the intended database. Local, test, and production database configurations must be handled carefully to avoid applying changes to the wrong environment.
 
 ## Continuous Integration
 
-GitHub Actions automatically runs the project's test workflow on pushes to `master` and pull requests targeting `master`.
+GitHub Actions automatically runs the project's test workflow on pushes to master and pull requests targeting master.
 
 This helps detect regressions and verify changes before they are merged.
 
-Workflow configuration:
-
-`.github/workflows/tests.yml`
 
 ## Deployment
 
